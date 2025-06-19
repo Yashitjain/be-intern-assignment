@@ -3,8 +3,7 @@ import { User } from '../entities/User';
 import { Post } from '../entities/Post';
 import { Comment } from '../entities/Comment';
 import { AppDataSource } from '../data-source';
-import { bool, boolean } from 'joi';
-import { request } from 'http';
+import { In } from 'typeorm';
 
 export class PostController {
   private userRepository = AppDataSource.getRepository(User);
@@ -15,7 +14,7 @@ export class PostController {
     try {
       console.log("here");
       const posts = await this.postRepository.find({relations: ['user']});
-      res.json(posts);
+      res.json(posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
     } catch (error) {
       res.status(500).json({ message: 'Error fetching posts', error });
     }
@@ -23,19 +22,30 @@ export class PostController {
 
   async getPostById(req: Request, res: Response) {
     try {
-      console.log(await this.postRepository.find());
+      const user = await this.userRepository.findOne({
+        where : {id : parseInt(req.params.id)},
+        relations : ["following"]
+      })
+      
+      if (!user) {
+       return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const followingUserIds = user.following.map(user => user.id);
+      console.log(followingUserIds);
       const posts = await this.postRepository.find({
         where: {
           user: {
-            id: parseInt(req.params.id),
+            id: In(followingUserIds),
           },
         },
         relations: ['user', 'likeUsers', 'comments'],
       });      
+      console.log(posts);
       if (!posts) {
         return res.status(404).json({ message: 'post not found' });
       }
-      res.json(posts);
+      res.json(posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
     } catch (error) {
       res.status(500).json({ message: 'Error fetching post', error });
     }
@@ -50,7 +60,6 @@ export class PostController {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // 👇 DO NOT pass req.body directly — create post manually
     const post = this.postRepository.create({
       message,
       user,
@@ -177,5 +186,24 @@ export class PostController {
         res.status(500).json({ message: 'Error liking Comment', error });
     }
   }
+
+  async getPostsByHashtag(req: Request, res: Response) {
+  try {
+    const hashtag = "#" + req.params.tag;
+    console.log(hashtag);
+    const allPosts = await this.postRepository.find(); // inferred from Entity
+
+    const requiredPosts = allPosts.filter(post =>
+      Array.isArray(post.hashtags) &&
+      post.hashtags.some(tag => (typeof tag === 'string') && tag.toLowerCase() === hashtag.toLowerCase())
+    );
+
+      res.json(requiredPosts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+  } catch (error) {
+    console.error("Error in getPostsByHashtag:", error);
+    return res.status(500).json({ message: "Internal server error", error });
+  }
+}
+
 
 }

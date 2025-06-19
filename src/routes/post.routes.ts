@@ -15,3 +15,9 @@ postRouter.get('/user/:id', postController.getPostById.bind(postController));
 
 //like post by postId
 postRouter.post("/user/:userId/like/:id", postController.likePostById.bind(postController));
+
+//post by hashtags
+postRouter.get("/hashtag/:tag", postController.getPostsByHashtag.bind(postController));
+
+//delete post
+postRouter.delete("/:id",postController.deletePost.bind(postController));

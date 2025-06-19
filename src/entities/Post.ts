@@ -46,7 +46,7 @@ export class Post {
   likes: number;
 
   @Column({type: "simple-array"})
-  hashtags = [];
+  hashtags: string[];
 
   @CreateDateColumn()
   createdAt: Date;

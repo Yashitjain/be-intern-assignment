@@ -10,7 +10,7 @@ export class UserController {
       const users = await this.userRepository.find({
         relations: ['following','followers','likedPosts']
       });
-      res.json(users);
+      res.json(users.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
     } catch (error) {
       res.status(500).json({ message: 'Error fetching users', error });
     }
@@ -99,7 +99,6 @@ export class UserController {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if already following
     const alreadyFollowing = currUser.following.some(user => user.id === userToFollowId);
 
     if (!alreadyFollowing) {
@@ -107,11 +106,9 @@ export class UserController {
       userToFollow.followers.push(currUser);
     }
 
-    // Update counts
     currUser.totalFollowing = currUser.following.length;
     userToFollow.totalFollowers = userToFollow.followers.length;
 
-    // Save both users
     await this.userRepository.save([currUser, userToFollow]);
 
     return res.json({ message: "User followed successfully", currUser });
@@ -119,6 +116,24 @@ export class UserController {
     console.error("Follow user error:", error);
     return res.status(500).json({ message: "Error following user", error });
   }
+}
+
+  async getFollowers(req : Request, res: Response){
+    try{
+      const user = await this.userRepository.findOne({
+        where : {id: parseInt(req.params.id)},
+        relations : ["followers"]});
+
+    if(!user){
+      return res.status(404).json({"message":"User not found"});
+    }
+
+    const followers = user.followers;
+    return res.json({"followers":followers});
+  }catch(error){
+    return res.status(500).json({"message":"error getting followers",error});
+  }
+
 }
 
 }
