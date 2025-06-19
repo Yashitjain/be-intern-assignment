@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validate } from '../middleware/validation.middleware';
 import { createUserSchema, updateUserSchema } from '../validations/user.validation';
 import { UserController } from '../controllers/user.controller';
+import { PostController } from '../controllers/post.controller';
 
 export const userRouter = Router();
 const userController = new UserController();
@@ -20,3 +21,6 @@ userRouter.put('/:id', validate(updateUserSchema), userController.updateUser.bin
 
 // Delete user
 userRouter.delete('/:id', userController.deleteUser.bind(userController));
+
+//follow User
+userRouter.post("/:id", userController.followUser.bind(userController));
