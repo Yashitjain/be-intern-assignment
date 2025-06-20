@@ -7,10 +7,24 @@ export class UserController {
 
   async getAllUsers(req: Request, res: Response) {
     try {
-      const users = await this.userRepository.find({
-        relations: ['following','followers','likedPosts']
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
+      const [users,totalUsers] = await this.userRepository.findAndCount({
+        relations: ['following','followers','likedPosts'],
+        order: {
+          createdAt: 'DESC', 
+        },
+        skip,
+        take: limit,
       });
-      res.json(users.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      res.json( {
+        "data": users,
+        "currentPage": page,
+        "pageSize": limit,
+        totalUsers,
+        "totalPages": Math.ceil(totalUsers / limit)});
     } catch (error) {
       res.status(500).json({ message: 'Error fetching users', error });
     }
@@ -111,7 +125,7 @@ export class UserController {
 
     await this.userRepository.save([currUser, userToFollow]);
 
-    return res.json({ message: "User followed successfully", currUser });
+    return res.json({ message: "User followed successfully"});
   } catch (error) {
     console.error("Follow user error:", error);
     return res.status(500).json({ message: "Error following user", error });
@@ -120,6 +134,10 @@ export class UserController {
 
   async getFollowers(req : Request, res: Response){
     try{
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
       const user = await this.userRepository.findOne({
         where : {id: parseInt(req.params.id)},
         relations : ["followers"]});
@@ -128,8 +146,15 @@ export class UserController {
       return res.status(404).json({"message":"User not found"});
     }
 
-    const followers = user.followers;
-    return res.json({"followers":followers});
+    const allFollowers = user.followers;
+    const totalFollowers = allFollowers.length;
+    const paginatedFollowers = allFollowers.slice(skip, skip + limit);
+
+    return res.json({data: paginatedFollowers,
+      currentPage: page,
+      pageSize: limit,
+      totalFollowers,
+      totalPages: Math.ceil(totalFollowers / limit),});
   }catch(error){
     return res.status(500).json({"message":"error getting followers",error});
   }

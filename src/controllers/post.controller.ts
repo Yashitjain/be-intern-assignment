@@ -4,6 +4,7 @@ import { Post } from '../entities/Post';
 import { Comment } from '../entities/Comment';
 import { AppDataSource } from '../data-source';
 import { In } from 'typeorm';
+import { date } from 'joi';
 
 export class PostController {
   private userRepository = AppDataSource.getRepository(User);
@@ -12,16 +13,37 @@ export class PostController {
 
   async getAllPosts(req: Request, res: Response) {
     try {
-      console.log("here");
-      const posts = await this.postRepository.find({relations: ['user']});
-      res.json(posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
+      const [posts, totalPosts] = await this.postRepository.findAndCount({
+        relations: ['user'],
+        order:{
+          createdAt: 'DESC'
+        },
+        skip,
+        take: limit,
+      });
+      res.json({
+        "data" : posts,
+        "currentPage": page,
+        "pageSize": limit,
+        totalPosts,
+        "totalPages": Math.ceil(totalPosts / limit)
+
+      });
     } catch (error) {
       res.status(500).json({ message: 'Error fetching posts', error });
     }
   }
 
-  async getPostById(req: Request, res: Response) {
+  async getPostByUserId(req: Request, res: Response) {
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
       const user = await this.userRepository.findOne({
         where : {id : parseInt(req.params.id)},
         relations : ["following"]
@@ -39,13 +61,24 @@ export class PostController {
             id: In(followingUserIds),
           },
         },
+        order:{
+          createdAt: 'DESC'
+        },
         relations: ['user', 'likeUsers', 'comments'],
       });      
-      console.log(posts);
+
+      const allPosts = posts.length;
+      const paginationPosts = posts.slice(skip, skip + limit);
+
       if (!posts) {
         return res.status(404).json({ message: 'post not found' });
       }
-      res.json(posts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+      res.json({
+        "data":paginationPosts,
+        "pageSize": limit,
+        "currPage": page,
+        totalPages: Math.ceil(allPosts/ limit)
+      });
     } catch (error) {
       res.status(500).json({ message: 'Error fetching post', error });
     }

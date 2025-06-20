@@ -11,7 +11,7 @@ postRouter.post('/user/:userId', postController.createPost.bind(postController))
 postRouter.get('/', postController.getAllPosts.bind(postController));
 
 //get post by user
-postRouter.get('/user/:id', postController.getPostById.bind(postController));
+postRouter.get('/user/:id', postController.getPostByUserId.bind(postController));
 
 //like post by postId
 postRouter.post("/user/:userId/like/:id", postController.likePostById.bind(postController));

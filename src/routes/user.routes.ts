@@ -23,6 +23,6 @@ userRouter.put('/:id', validate(updateUserSchema), userController.updateUser.bin
 userRouter.delete('/:id', userController.deleteUser.bind(userController));
 
 //follow User
-userRouter.post("/:id", userController.followUser.bind(userController));
+userRouter.post("/:id/follow", userController.followUser.bind(userController));
 
 userRouter.get("/:id/followers", userController.getFollowers.bind(userController))
