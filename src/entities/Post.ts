@@ -10,7 +10,6 @@ import {
   ManyToMany,
   JoinTable
 } from 'typeorm';
-import {Comment} from './Comment';
 import {User} from './User'
 
 @Entity('Post')
@@ -24,9 +23,6 @@ export class Post {
 
   @Column({ type: 'varchar', length: 255 })
   message: string;
-
-  @OneToMany(() => Comment, comment => comment.post)
-  comments: Comment[];
 
   @ManyToMany(() => User, user => user.likedPosts, { cascade: true })
   @JoinTable({
